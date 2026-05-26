@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>GBHI - South Asia Fellowship Network | Atlantic Fellows for Equity in Brain Health</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a2a6c 0%, #b21f1f 50%, #fdbb4d 100%);
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px);
+            padding: 12px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            z-index: 1000;
+            position: relative;
+        }
+        
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .gbhi-logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #fff 0%, #fdbb4d 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #1a2a6c;
+        }
+        
+        .header h1 { font-size: 18px; color: white; }
+        .header h1 span { color: #fdbb4d; }
+        .header p { color: rgba(255,255,255,0.7); font-size: 10px; margin-top: 2px; }
+        
+        .controls { display: flex; gap: 8px; }
+        
+        .btn {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover { background: rgba(255,255,255,0.2); transform: translateY(-2px); }
+        .btn-primary { background: linear-gradient(135deg, #fdbb4d 0%, #ff8c00 100%); color: #1a2a6c; }
+        
+        .main-container { height: calc(100vh - 72px); position: relative; }
+        .map-container { height: 100%; width: 100%; position: relative; }
+        #southAsiaMap { height: 100%; width: 100%; }
+        
+        .sidebar {
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            width: 320px;
+            background: rgba(0, 0, 0, 0.92);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 18px;
+            color: #e0e0e0;
+            z-index: 1000;
+            max-height: 85%;
+            overflow-y: auto;
+            border: 1px solid rgba(253,187,77,0.3);
+            pointer-events: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+        
+        .sidebar h3 {
+            color: #fdbb4d;
+            margin-bottom: 12px;
+            font-size: 16px;
+            border-bottom: 2px solid #fdbb4d;
+            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .fellow-code { font-size: 22px; font-weight: 800; color: #fdbb4d; margin-bottom: 5px; }
+        .fellow-country { display: inline-block; padding: 3px 10px; background: rgba(255,255,255,0.1); border-radius: 20px; font-size: 11px; margin: 8px 0; }
+        .fellow-bio { line-height: 1.55; margin: 12px 0; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 10px; font-size: 12px; max-height: 200px; overflow-y: auto; }
+        .project-title { background: rgba(253,187,77,0.1); padding: 10px; border-radius: 8px; margin: 12px 0; border-left: 3px solid #fdbb4d; font-size: 12px; }
+        .vision-badge { background: rgba(253,187,77,0.08); padding: 10px; border-radius: 8px; margin: 12px 0; border-left: 3px solid #ff8c00; font-size: 12px; font-style: italic; }
+        .connection-list { list-style: none; padding: 0; }
+        .connection-list li { padding: 6px 10px; margin: 4px 0; background: rgba(255,255,255,0.08); border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.2s; }
+        .connection-list li:hover { background: #fdbb4d; color: #1a2a6c; transform: translateX(4px); }
+        .close-sidebar { background: rgba(220,53,69,0.8); color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; margin-top: 15px; width: 100%; font-weight: 500; transition: all 0.2s; }
+        .close-sidebar:hover { background: #dc3545; }
+        
+        .stats-bar {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(8px);
+            padding: 6px 14px;
+            border-radius: 20px;
+            color: #fdbb4d;
+            font-size: 11px;
+            z-index: 1000;
+            font-weight: 500;
+        }
+        
+        .legend-panel {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(8px);
+            padding: 8px 12px;
+            border-radius: 10px;
+            color: #ddd;
+            font-size: 10px;
+            z-index: 1000;
+        }
+        
+        .custom-marker { cursor: pointer; }
+        .custom-marker:hover { transform: scale(1.5); z-index: 1000; }
+        
+        @media (max-width: 768px) {
+            .header { flex-direction: column; text-align: center; gap: 8px; padding: 10px; }
+            .sidebar { width: 280px; right: 10px; top: 10px; padding: 12px; max-height: 75%; }
+            .fellow-bio { max-height: 150px; }
+        }
+        
+        .dark-popup .leaflet-popup-content-wrapper { background: #1a1a2e; color: white; border-radius: 10px; border: 1px solid #fdbb4d; }
+        .dark-popup .leaflet-popup-tip { background: #1a1a2e; }
+        
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #1a1a2e; border-radius: 5px; }
+        ::-webkit-scrollbar-thumb { background: #fdbb4d; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-section">
+            <div class="gbhi-logo"><i class="fas fa-brain"></i></div>
+            <div>
+                <h1>Global Brain Health Institute <span>| GBHI</span></h1>
+                <p>South Asia Fellowship Network • Atlantic Fellows for Equity in Brain Health</p>
+            </div>
+        </div>
+        <div class="controls">
+            <button class="btn" onclick="window.location.href='index.html'"><i class="fas fa-globe-americas"></i> 🌍 Global Map</button>
+            <button class="btn" id="resetMapBtn"><i class="fas fa-home"></i> Reset Map</button>
+            <button class="btn btn-primary" id="clearLinesBtn"><i class="fas fa-eraser"></i> Clear Lines</button>
+        </div>
+    </div>
+    
+    <div class="main-container">
+        <div class="map-container">
+            <div id="southAsiaMap"></div>
+            <div class="stats-bar">
+                <i class="fas fa-users"></i> 9 Fellows | <i class="fas fa-hand-pointer"></i> Click any node
+            </div>
+            <div class="legend-panel">
+                <span style="display:inline-block; width:10px; height:10px; background:#dc143c; border-radius:50%; margin-right:4px;"></span> Nepal
+                <span style="display:inline-block; width:10px; height:10px; background:#ff8c00; border-radius:50%; margin-right:4px; margin-left:8px;"></span> India
+                <span style="display:inline-block; width:10px; height:10px; background:#006a4e; border-radius:50%; margin-right:4px; margin-left:8px;"></span> Bangladesh
+            </div>
+        </div>
+        
+        <div class="sidebar" id="sidebar">
+            <h3><i class="fas fa-user-tie"></i> Fellow Profile</h3>
+            <div id="fellowInfo">
+                <div style="text-align: center; color: #888; padding: 30px 20px;">
+                    <i class="fas fa-globe-asia" style="font-size: 42px; margin-bottom: 15px; opacity: 0.5;"></i>
+                    <p><strong style="color:#fdbb4d;">Click any fellow marker (A1-A9)</strong></p>
+                    <p style="font-size: 12px; margin-top: 10px;">View biography • Pilot project • Vision statement • Network connections</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        const southAsiaMap = L.map('southAsiaMap').setView([24, 82], 5);
+        
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OSM & CartoDB',
+            maxZoom: 12,
+            minZoom: 5
+        }).addTo(southAsiaMap);
+        
+        const fellows = {
+            "A1": { name: "A1", country: "Nepal", city: "Dharan", lat: 26.8142, lng: 87.2833,
+                bio: "Early career psychiatric nurse, academic, and researcher whose work sits at the intersection of dementia care, mental health, community health systems, and public policy in Nepal. Trained in psychiatric nursing and currently working within academia and research, her professional trajectory reflects a broader commitment to strengthening brain health infrastructure in low- and middle-income contexts where dementia care remains underdeveloped.",
+                project: "START-Nepal: Cultural adaptation and feasibility of STrAtegies For RelaTives (START) intervention for family carers of people with Dementia in Nepal — adapting an evidence-based psychosocial intervention for caregivers into the Nepalese cultural and healthcare context.",
+                vision: "To reduce the impact of dementia by raising awareness, investing in research to identify preventable factors, and developing effective policies and dementia care plans, particularly in low and middle-income countries. I hope to play a leadership role in improving awareness, early detection, caregiver support, and integration of dementia care into primary healthcare systems.",
+                connections: ["A3", "A5", "A6"], year: "2023-2024" },
+            "A2": { name: "A2", country: "India", city: "Bengaluru", lat: 12.9716, lng: 77.5946,
+                bio: "Neurologist and clinical researcher whose work focuses on the intersection of neurodegenerative disease, dementia diagnostics, public health, and holistic brain health approaches within the Indian context. Trained across internal medicine, neurology, and cognitive neurosciences, his professional trajectory reflects a strong commitment to advancing dementia care beyond narrowly biomedical frameworks.",
+                project: "Role of Social Networking and Physical Activity in Frontotemporal Dementia — focusing on the often-neglected role of social engagement and physical activity in supporting individuals living with frontotemporal dementia (FTD).",
+                vision: "To promote awareness of dementia, early diagnosis, prevention and management, explore newer modalities of treatment through collaborative therapeutic trials, and promote dementia research in India. Collaboration is key — bringing together society, expertise, and experience is crucial in addressing dementia.",
+                connections: ["A1", "A4", "A7", "A9"], year: "2020-2021" },
+            "A3": { name: "A3", country: "Nepal", city: "Dharan", lat: 26.8142, lng: 87.2833,
+                bio: "Psychiatrist, academic, and health systems researcher whose work focuses on integrating dementia care into primary healthcare systems in Nepal. Working as an Associate Professor in Psychiatry at B.P. Koirala Institute of Health Sciences, his work operates across clinical care, public health implementation, policy engagement, and workforce development.",
+                project: "IDEACAP-Nepal: Integrating Dementia Care into Primary Care in Nepal — developing sustainable models through which dementia identification, follow-up care, caregiver support, and referral pathways can be integrated directly into routine community healthcare systems.",
+                vision: "To adopt a lifelong approach to brain health — promoting brain health, reducing risk factors, early identification and management, and rehabilitation to reduce the scale and impact of dementia. With the immense scarcity of specialised human resources for dementia services in Nepal, my aim is to integrate dementia services into primary healthcare settings.",
+                connections: ["A1", "A5", "A8"], year: "2024-2025" },
+            "A4": { name: "A4", country: "Bangladesh", city: "Dhaka", lat: 23.8103, lng: 90.4125,
+                bio: "Public health researcher and health economist whose work focuses on dementia care, health systems evaluation, and the economic dimensions of brain health policy. Originally from Bangladesh and currently based in Sweden, his work explores low-cost, technology-enabled interventions for people with mild cognitive impairment or early dementia.",
+                project: "Economic Evaluation of Support Monitoring and Reminder Technology (SMART4MD) — examining the effectiveness of a smartphone intervention to improve quality of life for people with mild cognitive impairment or early dementia and their caregivers.",
+                vision: "To find effective and cost-effective health policies to identify, treat, and manage people living with dementia and their caregivers. The societal cost of dementia is substantial — my interest is to provide evidence to policymakers to facilitate evidence-based decision-making.",
+                connections: ["A2", "A6", "A9"], year: "2019-2020" },
+            "A5": { name: "A5", country: "India", city: "New Delhi", lat: 28.6139, lng: 77.2090,
+                bio: "Clinical neuropsychologist and dementia researcher whose work focuses on developing accessible, non-pharmacological approaches to dementia care within the Indian context. Based at the Memory Clinic in the Department of Geriatric Medicine at AIIMS New Delhi, her work combines cognitive assessment, cognitive retraining, and digital interventions.",
+                project: "Adaptation and Usability of Post-Diagnostic E-Intervention for Dementia in India — developing a culturally relevant, home-based cognitive training system for individuals with mild cognitive impairment and early dementia alongside their caregivers.",
+                vision: "To create global awareness campaigns about dementia for young audiences and encourage intergenerational awareness about dementia. I aim to develop a digital ecosystem of non-pharmacological interventions for dementia management.",
+                connections: ["A1", "A3", "A7", "A8"], year: "2023-2024" },
+            "A6": { name: "A6", country: "Nepal", city: "Kathmandu", lat: 27.7172, lng: 85.3240,
+                bio: "Nursing academic, geriatric care trainer, and researcher whose work focuses on healthy ageing, dementia prevention, and strengthening community-based brain health systems within Nepal. Working as an Assistant Professor in Nursing at Kathmandu University School of Medical Science.",
+                project: "Challenges in Health Seeking Behaviour among Hypertensive Adults in Nepal — examining how barriers to healthcare access, health literacy, and service engagement shape long-term brain health outcomes, focusing on older adults with hypertension.",
+                vision: "To increase social awareness of dementia risk factors, provide health education on prevention, early diagnosis, and management, and improve social engagement of older adults. My long-term aspiration is to strengthen leadership and systems for brain health and dementia care in low-resource settings.",
+                connections: ["A1", "A4", "A8"], year: "2022-2023" },
+            "A7": { name: "A7", country: "India", city: "Chennai", lat: 13.0827, lng: 80.2707,
+                bio: "Perceptual neuroscientist whose work sits at the intersection of clinical neuroscience, brain health literacy, hearing science, and arts-based public engagement. Originally from India and currently based in Ireland as a postdoctoral researcher at Trinity College Dublin.",
+                project: "Investigating the Relationship Between Tinnitus and Dementia — examining potential links between tinnitus, hearing loss, stress, and dementia, exploring whether tinnitus may function as an identifiable and potentially preventable risk factor.",
+                vision: "Collaboration is key — coming together as a society, opening our hearts to seeing the value each of its members brings to the whole and placing our trust in the unison of expertise and experience is crucial in addressing dementia. To develop an international community advocating for brain health literacy.",
+                connections: ["A2", "A5", "A9"], year: "2022-2023" },
+            "A8": { name: "A8", country: "India", city: "Chennai", lat: 13.0827, lng: 80.2707,
+                bio: "Psychiatrist whose work focuses on community-based dementia care, geriatric mental health, and strengthening equitable brain health services for underserved populations in India. Working with the Schizophrenia Research Foundation (SCARF) India.",
+                project: "Integrating Sensory Care into Community Geriatric Mental Health Services: A Pilot Study in Rural Tamil Nadu — exploring how sensory health screening (hearing and vision) can be integrated into community dementia and geriatric care systems.",
+                vision: "To create dementia-friendly communities in low- and middle-income countries, providing integrated, community-based dementia care that offers early support and upholds dignity. My vision is to shift the narrative on brain health by integrating geriatric mental and cognitive care into primary healthcare frameworks.",
+                connections: ["A3", "A5", "A6", "A9"], year: "2025-2026" },
+            "A9": { name: "A9", country: "Bangladesh", city: "Dhaka", lat: 23.8103, lng: 90.4125,
+                bio: "Dementia care specialist, public health advocate, and social sector leader whose work focuses on developing equitable and culturally grounded dementia care systems in Bangladesh and across South Asia. Founder of Probin Seba and co-founder of the Dementia Care Foundation Bangladesh.",
+                project: "A Culturally Adapted Dementia Caregiver Support Model in Rural Bangladesh — developing contextually relevant and community-based support systems for individuals living with dementia and their caregivers in underserved rural settings.",
+                vision: "To develop a movement — 'Together for Tomorrow' — to achieve a dementia-friendly society with collaboration of all stakeholders locally and globally. My long-term aspiration is to become a leader in advancing equitable brain health and dementia care systems, particularly in underserved regions such as Bangladesh and South Asia.",
+                connections: ["A2", "A4", "A7", "A8"], year: "2025-2026" }
+        };
+        
+        let markers = [];
+        let currentLines = [];
+        
+        function getColor(country) {
+            if (country === "Nepal") return "#dc143c";
+            if (country === "India") return "#ff8c00";
+            return "#006a4e";
+        }
+        
+        function clearAllConnections() {
+            currentLines.forEach(line => southAsiaMap.removeLayer(line));
+            currentLines = [];
+        }
+        
+        function drawConnectionsForFellow(fellowId) {
+            clearAllConnections();
+            const fellow = fellows[fellowId];
+            if (!fellow || !fellow.connections) return;
+            fellow.connections.forEach(connId => {
+                const target = fellows[connId];
+                if (target) {
+                    const line = L.polyline([[fellow.lat, fellow.lng], [target.lat, target.lng]], {
+                        color: '#fdbb4d', weight: 3, opacity: 0.85
+                    }).addTo(southAsiaMap);
+                    currentLines.push(line);
+                }
+            });
+        }
+        
+        function showFellowDetails(fellowId) {
+            const f = fellows[fellowId];
+            if (!f) return;
+            const flag = f.country === "Nepal" ? "🇳🇵" : (f.country === "India" ? "🇮🇳" : "🇧🇩");
+            const connectionsList = f.connections.map(connId => {
+                const c = fellows[connId];
+                if (!c) return '';
+                const cFlag = c.country === "Nepal" ? "🇳🇵" : (c.country === "India" ? "🇮🇳" : "🇧🇩");
+                return `<li onclick="selectConnectedFellow('${connId}')">
+                            <i class="fas fa-user-friends"></i> <strong>${c.name}</strong> ${cFlag} (${c.country})
+                        </li>`;
+            }).join('');
+            
+            document.getElementById('fellowInfo').innerHTML = `
+                <div>
+                    <div class="fellow-code">${f.name}</div>
+                    <div class="fellow-country">${flag} ${f.country} | ${f.city} | ${f.year}</div>
+                    <div class="fellow-bio"><strong>📖 Background</strong><br>${f.bio}</div>
+                    <div class="project-title"><strong>🔬 Pilot Project</strong><br>${f.project}</div>
+                    <div class="vision-badge"><strong>🌟 Vision</strong><br>"${f.vision}"</div>
+                    <div style="margin-top: 15px;">
+                        <h4 style="color:#fdbb4d; margin-bottom: 8px;"><i class="fas fa-project-diagram"></i> Network Connections (${f.connections.length})</h4>
+                        <ul class="connection-list">${connectionsList}</ul>
+                    </div>
+                    <button class="close-sidebar" onclick="clearSidebarAndLines()"><i class="fas fa-times"></i> Close</button>
+                </div>
+            `;
+            drawConnectionsForFellow(fellowId);
+            markers.forEach(m => { if (m.options.fellowId === fellowId) m.openPopup(); });
+        }
+        
+        function selectConnectedFellow(fellowId) {
+            showFellowDetails(fellowId);
+            const f = fellows[fellowId];
+            if (f) southAsiaMap.flyTo([f.lat, f.lng], 8, { duration: 0.8 });
+        }
+        
+        function clearSidebarAndLines() {
+            clearAllConnections();
+            document.getElementById('fellowInfo').innerHTML = `
+                <div style="text-align: center; color: #888; padding: 30px 20px;">
+                    <i class="fas fa-globe-asia" style="font-size: 42px; margin-bottom: 15px; opacity: 0.5;"></i>
+                    <p><strong style="color:#fdbb4d;">Click any fellow marker (A1-A9)</strong></p>
+                    <p style="font-size: 12px; margin-top: 10px;">View biography • Pilot project • Vision statement • Network connections</p>
+                </div>
+            `;
+        }
+        
+        function resetView() {
+            southAsiaMap.setView([24, 82], 5);
+            clearSidebarAndLines();
+        }
+        
+        function createMarker(fellow) {
+            const markerColor = getColor(fellow.country);
+            const customIcon = L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background:${markerColor}; width:14px; height:14px; border-radius:50%; border:3px solid white; box-shadow:0 0 10px ${markerColor};"></div>`,
+                iconSize: [20, 20], popupAnchor: [0, -10]
+            });
+            const flag = fellow.country === "Nepal" ? "🇳🇵" : (fellow.country === "India" ? "🇮🇳" : "🇧🇩");
+            const marker = L.marker([fellow.lat, fellow.lng], { icon: customIcon, fellowId: fellow.name }).addTo(southAsiaMap);
+            marker.bindPopup(`
+                <div style="font-family: 'Inter', sans-serif; min-width: 200px; background: #1a1a2e; color: white; padding: 8px; border-radius: 8px;">
+                    <strong style="font-size: 18px; color: #fdbb4d;">${fellow.name}</strong><br>
+                    <span>${flag} ${fellow.city}, ${fellow.country}</span><br>
+                    <span style="font-size: 11px; opacity: 0.8;">🎓 ${fellow.year}</span><br>
+                    <hr style="margin: 8px 0; border-color: #333;">
+                    <button onclick="showFellowDetails('${fellow.name}')" style="margin-top: 5px; padding: 6px 12px; background: linear-gradient(135deg, #fdbb4d, #ff8c00); color: #1a2a6c; border: none; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold;">
+                        <i class="fas fa-user-graduate"></i> View Full Profile
+                    </button>
+                </div>
+            `, { className: 'dark-popup' });
+            marker.on('click', () => showFellowDetails(fellow.name));
+            return marker;
+        }
+        
+        Object.values(fellows).forEach(fellow => { markers.push(createMarker(fellow)); });
+        
+        document.getElementById('resetMapBtn').addEventListener('click', resetView);
+        document.getElementById('clearLinesBtn').addEventListener('click', clearAllConnections);
+        
+        console.log("🧠 GBHI South Asia Network Loaded");
+        console.log(`📊 Fellows: ${Object.keys(fellows).length} (Nepal: 3, India: 4, Bangladesh: 2)`);
+    </script>
+</body>
+</html>
